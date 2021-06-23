@@ -1,8 +1,9 @@
 {
-  "name": "ninja",
+  "name": "fruit-ninja",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@babylonjs/core": "^4.2.0",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
@@ -17,7 +18,7 @@
     "web-vitals": "^1.1.2"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "react-scripts start --port 5555",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
