@@ -1,23 +1,38 @@
-import { useLayoutEffect, useRef } from 'react';
-import { GameScene } from './GameScene/GameScene';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import { GameScene } from './game/components/GameScene/GameScene';
 import './Game.css';
-import { Vector3 } from '@babylonjs/core';
+import { SCENE_SIZE } from './common/constant';
+import { observer } from 'mobx-react-lite';
+import { useStore } from './common/store';
+import { interval } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
-export const Game = () => {
+export const Game = observer(() => {
   const gameCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameScene = useRef<GameScene | null>(null);
-  let id = 0;
+  const { nextFruits, generateNewFruits } = useStore('Game');
+
   useLayoutEffect(() => {
     if (gameCanvasRef.current) {
-      gameScene.current = new GameScene(gameCanvasRef.current);
-
-      setInterval(() => {
-        gameScene.current?.pushFruit(id++, -1.5, new Vector3(0.7, 3, 0));
-        gameScene.current?.pushFruit(id++, -0.5, new Vector3(-0.5, 2.5, 0));
-      }, 4000);
-
+      gameScene.current = new GameScene(gameCanvasRef.current, SCENE_SIZE);
     }
-  }, [id]);
+  }, []);
+
+  useEffect(() => {
+    if (gameScene.current) {
+      nextFruits.map(({ id, flyDirection, startPositionX, type }) =>
+        gameScene.current?.pushFruit(type, id, startPositionX, flyDirection)
+      );
+    }
+  }, [nextFruits]);
+
+  useEffect(() => {
+    const interval$ = interval(3000).pipe(tap(() => generateNewFruits()));
+
+    const subscription = interval$.subscribe();
+
+    return () => subscription.unsubscribe();
+  }, [generateNewFruits]);
 
   return <canvas ref={gameCanvasRef} />;
-};
+});
