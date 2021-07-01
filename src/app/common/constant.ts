@@ -1,1 +1,1 @@
-export const SCENE_SIZE = 8;
+export const SCENE_SIZE = 9;

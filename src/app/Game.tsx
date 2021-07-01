@@ -10,13 +10,16 @@ import { tap } from 'rxjs/operators';
 export const Game = observer(() => {
   const gameCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameScene = useRef<GameScene | null>(null);
-  const { nextFruits, generateNewFruits } = useStore('Game');
+  const { nextFruits, generateNewFruits, updateScore } = useStore('Game');
 
   useLayoutEffect(() => {
     if (gameCanvasRef.current) {
       gameScene.current = new GameScene(gameCanvasRef.current, SCENE_SIZE);
+
+      const scoreSubscr = gameScene.current.score$.subscribe(value => updateScore(value));
+      return () => scoreSubscr.unsubscribe();
     }
-  }, []);
+  }, [updateScore]);
 
   useEffect(() => {
     if (gameScene.current) {
@@ -27,7 +30,7 @@ export const Game = observer(() => {
   }, [nextFruits]);
 
   useEffect(() => {
-    const interval$ = interval(3000).pipe(tap(() => generateNewFruits()));
+    const interval$ = interval(4000).pipe(tap(() => generateNewFruits()));
 
     const subscription = interval$.subscribe();
 

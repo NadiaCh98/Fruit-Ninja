@@ -1,45 +1,40 @@
-import { getRandomValue } from './common/services/rng';
+
 import { action, makeAutoObservable } from 'mobx';
 import { FruitNinja } from './game/models/fruitData';
+import { GameLogic } from './game/services/gameLogic';
 
 export class GameStore {
+  private gameLogic: GameLogic;
+
   public nextFruits: FruitNinja[] = [];
-  public count = 0;
+  public score = 0;
   public lifes = 0;
 
   constructor(private fruitPositionGeneratorInterval: number) {
     makeAutoObservable(this, {
       generateNewFruits: action.bound,
+      updateScore: action.bound
     });
+    this.gameLogic = new GameLogic(fruitPositionGeneratorInterval);
   }
 
   generateNewFruits(): void {
-    const startPosition = getRandomValue(
-      -this.fruitPositionGeneratorInterval,
-      this.fruitPositionGeneratorInterval
-    );
-    
-    const endPositionX =
-      startPosition >= 0
-        ? getRandomValue(
-            -this.fruitPositionGeneratorInterval + 1,
-            startPosition - 0.5
-          )
-        : getRandomValue(
-            startPosition + 0.5,
-            this.fruitPositionGeneratorInterval - 1
-          );
-
+    const startPosition = this.gameLogic.generateFruitStartPosition();
+    const endPosition = this.gameLogic.generateFruitEndPosition(startPosition);
     this.nextFruits = [
       {
         id: Math.random(),
         startPositionX: startPosition,
         flyDirection: {
-          x: endPositionX,
+          x: endPosition,
           y: this.fruitPositionGeneratorInterval,
         },
-        type: 'APPLE',
+        type: 'apple',
       },
     ];
+  }
+
+  updateScore(value: number): void {
+    this.score = value;
   }
 }
