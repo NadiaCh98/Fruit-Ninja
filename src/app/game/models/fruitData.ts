@@ -1,16 +1,18 @@
+import { Fruits } from '../../common/constant';
 import { BaseEntity } from './baseEntity';
+import { Point } from './point';
 
-export type FruitName = 'apple';
+export type Bomb = 'bomb';
+export type UniformFruit<T extends string> = Lowercase<T>;
+export type FruitName = UniformFruit<keyof typeof Fruits>;
 
 export type FruitSile = `${FruitName}_cut`;
 export type FruitSlices =  `${FruitSile}1` | `${FruitSile}2`;
-export type Fruit = FruitName | FruitSlices;
+export type GeneratableFruit = FruitName | UniformFruit<Bomb>;
+export type Fruit = UniformFruit<GeneratableFruit | FruitSlices | Bomb>;
 
-export interface FruitNinja extends BaseEntity {
-    readonly type: FruitName;
+export interface FruitData extends BaseEntity {
+    readonly type: GeneratableFruit;
     readonly startPositionX: number;
-    readonly flyDirection: {
-        readonly x: number;
-        readonly y: number;
-    }
+    readonly flyDirection: Point;
 }

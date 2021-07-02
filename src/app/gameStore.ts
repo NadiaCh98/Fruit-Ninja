@@ -1,40 +1,35 @@
-
 import { action, makeAutoObservable } from 'mobx';
-import { FruitNinja } from './game/models/fruitData';
-import { GameLogic } from './game/services/gameLogic';
+import { FruitData } from './game/models/fruitData';
+import { GeneratorFruits } from './game/services/generatorFruits';
 
 export class GameStore {
-  private gameLogic: GameLogic;
+  private generatorFruits: GeneratorFruits;
 
-  public nextFruits: FruitNinja[] = [];
+  public nextFruits: FruitData[] = [];
   public score = 0;
-  public lifes = 0;
 
-  constructor(private fruitPositionGeneratorInterval: number) {
+  constructor(
+    fruitPositionGeneratorInterval: number,
+    public attemps: number
+  ) {
     makeAutoObservable(this, {
       generateNewFruits: action.bound,
-      updateScore: action.bound
+      updateScore: action.bound,
+      decrementAttemps: action.bound,
     });
-    this.gameLogic = new GameLogic(fruitPositionGeneratorInterval);
+    this.generatorFruits = new GeneratorFruits(fruitPositionGeneratorInterval);
   }
 
   generateNewFruits(): void {
-    const startPosition = this.gameLogic.generateFruitStartPosition();
-    const endPosition = this.gameLogic.generateFruitEndPosition(startPosition);
-    this.nextFruits = [
-      {
-        id: Math.random(),
-        startPositionX: startPosition,
-        flyDirection: {
-          x: endPosition,
-          y: this.fruitPositionGeneratorInterval,
-        },
-        type: 'apple',
-      },
-    ];
+    console.log(this.generatorFruits.generateFruitsByScore(this.score));
+    this.nextFruits = this.generatorFruits.generateFruitsByScore(this.score);
   }
 
   updateScore(value: number): void {
-    this.score = value;
+    this.score += value;
+  }
+
+  decrementAttemps(): void {
+    this.attemps--;
   }
 }

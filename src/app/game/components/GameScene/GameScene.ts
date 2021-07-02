@@ -1,4 +1,4 @@
-import { FruitName } from './../../models/fruitData';
+import { FruitName, GeneratableFruit } from './../../models/fruitData';
 import {
   Vector3,
   Scene,
@@ -25,8 +25,8 @@ import {
 import { Id } from '../../models/baseEntity';
 import { Fruit } from '../../models/fruitData';
 import { Point } from '../../models/point';
-import { BehaviorSubject } from 'rxjs';
-import { AdvancedDynamicTexture, TextBlock } from 'babylonjs-gui';
+import { Subject } from 'rxjs';
+import { PBRMaterial } from 'babylonjs/Materials/PBR/pbrMaterial';
 
 interface FruitOptions {
   readonly size: number;
@@ -42,6 +42,7 @@ const GRAVITY = 3;
 const MAGNITUDE = 2.8;
 const FRUIT_MASS = 2;
 const POSITION_Z = 0.5;
+const MESH_INTENSITY = 3;
 
 export class GameScene {
   private scene: Scene;
@@ -50,11 +51,14 @@ export class GameScene {
   private shadowGenerator: ShadowGenerator;
   private sideCameraOrientation: 1 | -1;
   private fruits: Record<Fruit, Promise<AbstractMesh>>;
-  private scoreTextBlock: TextBlock;
 
-  public score$ = new BehaviorSubject(0);
+  public cutFruits$ = new Subject<string>();
+  public missedFruit$ = new Subject<string>();
 
-  constructor(canvas: HTMLCanvasElement, private cameraPosition: number) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    private cameraPosition: number
+  ) {
     const engine = new Engine(canvas);
     this.scene = this.createScene(engine);
 
@@ -74,7 +78,8 @@ export class GameScene {
     this.fruits = {
       apple: this.importFruit('apple'),
       apple_cut1: this.importFruit('apple_cut1'),
-      apple_cut2: this.importFruit('apple_cut2')
+      apple_cut2: this.importFruit('apple_cut2'),
+      bomb: this.importFruit('bomb')
     };
 
     this.shadowGenerator = this.createShadowGenerator();
@@ -83,17 +88,9 @@ export class GameScene {
       height: Math.abs(cameraPosition),
     });
 
-    this.scoreTextBlock = this.createScoreBlock();
-
     engine.runRenderLoop(() => {
       this.scene.render();
     });
-  }
-
-  private incrementScore(count?: number): void {
-    const value = this.score$.value + 1;
-    this.scoreTextBlock.text = value.toString();
-    this.score$.next(value);
   }
 
   private createScene(
@@ -163,23 +160,13 @@ export class GameScene {
     fruit.dispose();
   }
 
-  private createScoreBlock(): TextBlock {
-    const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
-
-    const scoreTextBlock = new TextBlock();
-    scoreTextBlock.color = "white";
-    scoreTextBlock.fontSize = 60;
-    scoreTextBlock.top = "-45%";
-    scoreTextBlock.left = "45%";
-    scoreTextBlock.text = '0';
-    advancedTexture.addControl(scoreTextBlock); 
-
-    return scoreTextBlock;
-  }
-
-  private async cutFruit(fruitName: string, type: FruitName, fruitSize: number, { x, y }: Point): Promise<void> {
-    this.incrementScore();
-
+  private async cutFruit(
+    fruitName: string,
+    type: FruitName,
+    fruitSize: number,
+    { x, y }: Point
+  ): Promise<void> {
+    this.cutFruits$.next(fruitName);
     const fruitSliceOptions: FruitOptions = {
       size: fruitSize,
       startPositionX: x,
@@ -187,7 +174,7 @@ export class GameScene {
       mass: FRUIT_MASS / 2,
       restitution: 0,
       impulseDirection: Vector3.Zero(),
-      magnitutide: MAGNITUDE
+      magnitutide: MAGNITUDE,
     };
 
     const slice1 = await this.createFruit(`${fruitName}_1`, `${type}_cut1`, {
@@ -209,7 +196,7 @@ export class GameScene {
   }
 
   public async pushFruit(
-    type: FruitName,
+    type: GeneratableFruit,
     id: Id,
     startPosition: number,
     impulseDirection: {
@@ -220,6 +207,7 @@ export class GameScene {
     const fruitSize = 0.5 / 4;
     const fruitName = `fruit${id}`;
     const startPositionY = -(Math.abs(this.cameraPosition) / 2);
+   
     const fruit = await this.createFruit(fruitName, type, {
       size: fruitSize,
       startPositionX: startPosition,
@@ -227,13 +215,14 @@ export class GameScene {
       mass: FRUIT_MASS,
       restitution: 0,
       impulseDirection: new Vector3(impulseDirection.x, impulseDirection.y, 0),
-      magnitutide: MAGNITUDE
+      magnitutide: MAGNITUDE,
     });
 
     this.scene.onBeforeRenderObservable.add(() => {
       fruit.rotate(Axis.Z, 0.05);
-      if (fruit.position.y < startPositionY) {
+      if (!fruit.isDisposed() && fruit.position.y < startPositionY) {
         this.removeFruit(fruit);
+        this.missedFruit$.next(fruitName);
       }
     });
 
@@ -245,9 +234,11 @@ export class GameScene {
           const slicePosition: Point = {
             x: event.source._position.x,
             y: event.source._position.y,
-          }
+          };
           this.removeFruit(fruit);
-          await this.cutFruit(fruitName, type, fruitSize, slicePosition);
+          if (type !== 'bomb') {
+            await this.cutFruit(fruitName, type, fruitSize, slicePosition);
+          }
         }
       )
     );
@@ -268,6 +259,10 @@ export class GameScene {
     mesh.isPickable = true;
     mesh.name = type;
 
+    const material = mesh.material as PBRMaterial;
+    const meshTextures = material.getActiveTextures();
+    meshTextures.forEach((texture) => (texture.level = MESH_INTENSITY));
+    console.log(mesh);
     return mesh;
   }
 
@@ -284,6 +279,7 @@ export class GameScene {
       restitution,
       impulseDirection,
     } = options;
+    
     const parent = await this.fruits[type];
     const box = parent.clone(name, null)!;
 
