@@ -1,39 +1,75 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { GameScene } from './game/components/GameScene/GameScene';
 import styles from './Game.module.css';
-import { SCENE_SIZE } from './common/constant';
+import { SCENE_SIZE, START_MENU } from './common/constant';
 import { observer } from 'mobx-react-lite';
 import { useStore } from './common/store';
-import { interval } from 'rxjs';
-import { bufferTime, pluck, tap } from 'rxjs/operators';
+import {
+  BehaviorSubject,
+  combineLatest,
+  from,
+  of,
+  Subject,
+} from 'rxjs';
+import {
+  bufferTime,
+  concatMap,
+  count,
+  delay,
+  filter,
+  map,
+  startWith,
+  takeUntil,
+  tap,
+} from 'rxjs/operators';
+import { FruitSequence } from './game/models/fruitData';
+import { Blade } from './game/components/UI/Blade/Blade';
+import { GameControls } from './game/components/GameControls/GameControls';
+import { Button } from './common/components/Button/Button';
+import { ReactComponent as Pause } from '../assets/icons/pause-button.svg';
+import { StartMenu } from './game/components/UI/StartMenu/StartMenu';
+import { Score } from './game/components/UI/Score/Score';
 
 type Nullable<T> = T | null;
 
 export const Game = observer(() => {
   const gameCanvasRef = useRef<Nullable<HTMLCanvasElement>>(null);
   const gameScene = useRef<Nullable<GameScene>>(null);
- 
-  const { nextFruits, score, attemps, generateNewFruits, updateScore, decrementAttemps } =
-    useStore('Game');
+  const isActiveGame$ = useRef(new Subject<boolean>());
+  const isDisabled = useRef(true);
+
+  const {
+    nextFruits,
+    score,
+    isActiveGame,
+    onPause,
+    pause,
+    generateNewFruits,
+    updateScore,
+    decrementAttemps,
+    setGameMode
+  } = useStore('Game');
+
+  const fruits$ = useRef(new BehaviorSubject(nextFruits));
+  const onPause$ = useRef(new BehaviorSubject(onPause));
 
   useLayoutEffect(() => {
     if (gameCanvasRef.current) {
-      gameScene.current = new GameScene(gameCanvasRef.current, SCENE_SIZE);
+      gameScene.current = new GameScene(gameCanvasRef.current, START_MENU, SCENE_SIZE);
 
       const cutFruits$ = gameScene.current.cutFruits$;
       const missedFruit$ = gameScene.current.missedFruit$;
 
       const scoreSubscription = cutFruits$
         .pipe(
-          bufferTime(100), 
-          pluck('length'),
-          tap(value => updateScore(value))
+          bufferTime(100),
+          tap((fruits) => updateScore(fruits))
         )
         .subscribe();
 
-      const missedFruitSubscription = missedFruit$.pipe(
-        tap(() => decrementAttemps())
-      ).subscribe();
+      const missedFruitSubscription = missedFruit$
+        .pipe(tap((fruit) => decrementAttemps(fruit)))
+        .subscribe();
 
       scoreSubscription.add(missedFruitSubscription);
 
@@ -42,28 +78,76 @@ export const Game = observer(() => {
   }, [updateScore, decrementAttemps]);
 
   useEffect(() => {
-    if (gameScene.current) {
-      nextFruits.map(({ id, flyDirection, startPositionX, type }) =>
-        gameScene.current?.pushFruit(type, id, startPositionX, flyDirection)
-      );
-    }
+    fruits$.current.next(nextFruits);
   }, [nextFruits]);
 
+  useEffect(() => {
+    isActiveGame$.current.next(isActiveGame);
+  }, [isActiveGame]);
 
   useEffect(() => {
-    const interval$ = interval(4000).pipe(tap(() => generateNewFruits()));
+    onPause$.current.next(onPause);
+  }, [onPause]);
 
-    const subscription = interval$.subscribe();
+  useEffect(() => {
+    const gameOver$ = isActiveGame$.current.pipe(
+      tap(() => {
+        isDisabled.current = false;
+        gameScene.current?.clear();
+      })
+    );
 
-    return () => subscription.unsubscribe();
+    const pause$ = onPause$.current.pipe(
+      startWith(false),
+      tap((onPause) => {
+        onPause ? gameScene.current?.pause() : gameScene.current?.replay();
+      })
+    );
+
+    const fruitsUI = ({fruits, delayBetweenFruits}: FruitSequence) => {
+      return from(fruits).pipe(
+        concatMap((value) => of(value).pipe(
+          delay(delayBetweenFruits),
+          tap(({ id, type, startPositionX, flyDirection }) =>
+            gameScene.current?.pushFruit(type, id, startPositionX, flyDirection)
+          )
+        )),
+        count(),
+      );
+    };
+
+    const fruitsGenerator$ = combineLatest([fruits$.current, pause$]).pipe(
+      filter(([_, onPause]) => !onPause),
+      map(([fruits, _]) => fruits),
+      concatMap(fruits => fruitsUI(fruits).pipe(delay(3000))),
+      tap(() => generateNewFruits())
+    );
+
+    const game$ = fruitsGenerator$.pipe(
+      takeUntil(gameOver$)
+    );
+
+    const gameSubscription = game$.subscribe();
+
+    return () => gameSubscription.unsubscribe();
   }, [generateNewFruits]);
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.controls}>
+      <Blade />
+      <GameControls>
+        <Score score={score} best={0} />
+        <Button clickHandler={pause}>
+          <Pause />
+        </Button>
+        <StartMenu items={START_MENU} selectMode={setGameMode} />
+      </GameControls>
+      {/* <div className={styles.controls}>
         <p className={styles.score}>{score}</p>
         <p className={styles.attemps}>{attemps}</p>
-      </div>
+        <button onClick={pause}>{onPause ? 'Replay' : 'Pause'}</button>
+        {!isDisabled && <h1>Game Over</h1>}
+      </div> */}
       <canvas className={styles.scene} ref={gameCanvasRef} />
     </div>
   );

@@ -27,6 +27,7 @@ import { Fruit } from '../../models/fruitData';
 import { Point } from '../../models/point';
 import { Subject } from 'rxjs';
 import { PBRMaterial } from 'babylonjs/Materials/PBR/pbrMaterial';
+import { StartMenuItem } from '../../models/startMenu';
 
 interface FruitOptions {
   readonly size: number;
@@ -38,9 +39,9 @@ interface FruitOptions {
   readonly restitution?: number;
 }
 
-const GRAVITY = 3;
-const MAGNITUDE = 2.8;
-const FRUIT_MASS = 2;
+const GRAVITY = 9.8;
+const MAGNITUDE = 0.5;
+const FRUIT_MASS = 0.2;
 const POSITION_Z = 0.5;
 const MESH_INTENSITY = 3;
 
@@ -51,16 +52,21 @@ export class GameScene {
   private shadowGenerator: ShadowGenerator;
   private sideCameraOrientation: 1 | -1;
   private fruits: Record<Fruit, Promise<AbstractMesh>>;
+  private engine: Engine;
+  private onPause = false;
+  private startPositionY: number;
+  private visibleFruits: AbstractMesh[] = [];
 
-  public cutFruits$ = new Subject<string>();
-  public missedFruit$ = new Subject<string>();
+  public cutFruits$ = new Subject<GeneratableFruit>();
+  public missedFruit$ = new Subject<GeneratableFruit>();
 
   constructor(
     canvas: HTMLCanvasElement,
+    startMenu: StartMenuItem[],
     private cameraPosition: number
   ) {
-    const engine = new Engine(canvas);
-    this.scene = this.createScene(engine);
+    this.engine = new Engine(canvas);
+    this.scene = this.createScene();
 
     if (this.cameraPosition <= 0) {
       throw new Error('Invalid camera position');
@@ -68,6 +74,7 @@ export class GameScene {
 
     this.camera = this.createCamera(this.scene);
     this.sideCameraOrientation = cameraPosition > 0 ? 1 : -1;
+    this.startPositionY = -(Math.abs(this.cameraPosition) / 2);
 
     this.light = new DirectionalLight(
       'light',
@@ -79,25 +86,25 @@ export class GameScene {
       apple: this.importFruit('apple'),
       apple_cut1: this.importFruit('apple_cut1'),
       apple_cut2: this.importFruit('apple_cut2'),
-      bomb: this.importFruit('bomb')
+      bomb: this.importFruit('bomb'),
     };
 
     this.shadowGenerator = this.createShadowGenerator();
+
     this.createCuttingBoard('cuttingBoard.jpg', {
-      width: Math.abs(cameraPosition) * engine.getAspectRatio(this.camera),
+      width: Math.abs(cameraPosition) * this.engine.getAspectRatio(this.camera),
       height: Math.abs(cameraPosition),
     });
 
-    engine.runRenderLoop(() => {
+    this.engine.runRenderLoop(() => {
       this.scene.render();
     });
   }
 
   private createScene(
-    engine: Engine,
     gravityVector: Vector3 = new Vector3(0, -GRAVITY, 0)
   ): Scene {
-    const scene = new Scene(engine);
+    const scene = new Scene(this.engine);
 
     const physicsPlugin = new CannonJSPlugin();
     scene.enablePhysics(gravityVector, physicsPlugin);
@@ -157,7 +164,13 @@ export class GameScene {
 
   private removeFruit(fruit: AbstractMesh): void {
     this.scene.removeMesh(fruit);
+    this.shadowGenerator.removeShadowCaster(fruit);
+    this.visibleFruits.filter(({ name }) => fruit.name === name);
     fruit.dispose();
+  }
+
+  private createStartMenu(startMenu: StartMenuItem[]): void {
+    
   }
 
   private async cutFruit(
@@ -166,7 +179,6 @@ export class GameScene {
     fruitSize: number,
     { x, y }: Point
   ): Promise<void> {
-    this.cutFruits$.next(fruitName);
     const fruitSliceOptions: FruitOptions = {
       size: fruitSize,
       startPositionX: x,
@@ -189,10 +201,36 @@ export class GameScene {
     });
     slice2.rotation = new Vector3(0, 0, 0);
 
+    const removeFruitSlice = (slice: AbstractMesh) => {
+      if (!slice.isDisposed() && slice.position.y < this.startPositionY) {
+        this.removeFruit(slice);
+      }
+    };
+
     this.scene.onBeforeRenderObservable.add(() => {
       slice1.rotate(Axis.X, 0.05);
       slice2.rotate(Axis.X, 0.05);
+      removeFruitSlice(slice1);
+      removeFruitSlice(slice2);
     });
+  }
+
+  public pause(): void {
+    this.engine.stopRenderLoop();
+    this.onPause = true;
+  }
+
+  public replay(): void {
+    if (this.onPause) {
+      this.engine.runRenderLoop(() => {
+        this.scene.render();
+      });
+      this.onPause = true;
+    }
+  }
+
+  public clear(): void {
+    this.visibleFruits.forEach((mesh) => this.removeFruit(mesh));
   }
 
   public async pushFruit(
@@ -204,14 +242,13 @@ export class GameScene {
       y: number;
     }
   ): Promise<void> {
-    const fruitSize = 0.5 / 4;
+    const fruitSize = type === 'bomb' ? 0.5 : 0.5 / 5;
     const fruitName = `fruit${id}`;
-    const startPositionY = -(Math.abs(this.cameraPosition) / 2);
-   
+
     const fruit = await this.createFruit(fruitName, type, {
       size: fruitSize,
       startPositionX: startPosition,
-      startPositionY,
+      startPositionY: this.startPositionY,
       mass: FRUIT_MASS,
       restitution: 0,
       impulseDirection: new Vector3(impulseDirection.x, impulseDirection.y, 0),
@@ -220,9 +257,9 @@ export class GameScene {
 
     this.scene.onBeforeRenderObservable.add(() => {
       fruit.rotate(Axis.Z, 0.05);
-      if (!fruit.isDisposed() && fruit.position.y < startPositionY) {
+      if (!fruit.isDisposed() && fruit.position.y < this.startPositionY) {
         this.removeFruit(fruit);
-        this.missedFruit$.next(fruitName);
+        this.missedFruit$.next(type);
       }
     });
 
@@ -231,12 +268,14 @@ export class GameScene {
       new ExecuteCodeAction(
         ActionManager.OnPointerOverTrigger,
         async (event: ActionEvent) => {
-          const slicePosition: Point = {
-            x: event.source._position.x,
-            y: event.source._position.y,
-          };
           this.removeFruit(fruit);
+          this.cutFruits$.next(type);
+
           if (type !== 'bomb') {
+            const slicePosition: Point = {
+              x: event.source._position.x,
+              y: event.source._position.y,
+            };
             await this.cutFruit(fruitName, type, fruitSize, slicePosition);
           }
         }
@@ -262,7 +301,7 @@ export class GameScene {
     const material = mesh.material as PBRMaterial;
     const meshTextures = material.getActiveTextures();
     meshTextures.forEach((texture) => (texture.level = MESH_INTENSITY));
-    console.log(mesh);
+
     return mesh;
   }
 
@@ -279,32 +318,34 @@ export class GameScene {
       restitution,
       impulseDirection,
     } = options;
-    
-    const parent = await this.fruits[type];
-    const box = parent.clone(name, null)!;
 
-    box.position = new Vector3(
+    const parent = await this.fruits[type];
+    const fruit = parent.clone(name, null)!;
+
+    fruit.position = new Vector3(
       startPositionX,
       startPositionY,
       POSITION_Z * this.sideCameraOrientation
     );
 
-    box.scaling = new Vector3(size, size, size);
-    box.name = name;
-    box.physicsImpostor = new PhysicsImpostor(
-      box,
+    fruit.scaling = new Vector3(size, size, size);
+    fruit.name = name;
+    fruit.id = name;
+    fruit.physicsImpostor = new PhysicsImpostor(
+      fruit,
       PhysicsImpostor.NoImpostor,
       { mass, restitution },
       this.scene
     );
 
-    this.shadowGenerator.addShadowCaster(box);
+    this.shadowGenerator.addShadowCaster(fruit);
+    this.visibleFruits.push(fruit);
 
-    box.physicsImpostor.applyImpulse(
+    fruit.physicsImpostor.applyImpulse(
       impulseDirection.scale(MAGNITUDE),
-      box.getAbsolutePosition()
+      fruit.getAbsolutePosition()
     );
 
-    return box;
+    return fruit;
   }
 }
