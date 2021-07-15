@@ -9,6 +9,7 @@ import {
   FruitSequence,
   GeneratableFruit,
 } from '../models/fruitData';
+import { generateId } from './generateId';
 
 export type GenerateFruits = (iteraction: number) => FruitSequence;
 
@@ -18,15 +19,10 @@ export interface SpecificGeneratorMode {
 
 export abstract class FruitsGenerator implements SpecificGeneratorMode {
   constructor(
-    protected fruitPositionInterval: number,
-    protected delay: number
+    protected fruitPositionInterval: number
   ) {}
 
   public abstract generateFruitsSequence: GenerateFruits;
-
-  private generateId(): number {
-    return Math.random();
-  }
 
   private generateFruitStartPosition(): number {
     return getRandomValue(
@@ -54,7 +50,7 @@ export abstract class FruitsGenerator implements SpecificGeneratorMode {
       (this.fruitPositionInterval - 0.5, this.fruitPositionInterval);
     const type = fruitType || this.generateFruitType();
     return {
-      id: this.generateId(),
+      id: generateId(),
       type,
       startPositionX,
       flyDirection: {

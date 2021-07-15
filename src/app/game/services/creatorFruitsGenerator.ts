@@ -5,13 +5,12 @@ import { DzenFruitsGenerator } from './implementations/dzenFruitsGenerator';
 
 export const createGeneratorFruitsByMode = (
   mode: Game,
-  fruitPositionInterval: number,
-  delay: number
+  fruitPositionInterval: number
 ): FruitsGenerator => {
   switch (mode) {
     case Game.Classic:
-      return new ClassicFruitsGenerator(fruitPositionInterval, delay);
+      return new ClassicFruitsGenerator(fruitPositionInterval);
     case Game.Dzen:
-      return new DzenFruitsGenerator(fruitPositionInterval, delay);
+      return new DzenFruitsGenerator(fruitPositionInterval);
   }
 };

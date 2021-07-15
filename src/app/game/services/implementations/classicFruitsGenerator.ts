@@ -25,7 +25,7 @@ export class ClassicFruitsGenerator extends FruitsGenerator {
           : iteraction % 5 === 0
           ? 5
           : getRandomValueInclusive(2, iteraction < 8 ? iteraction : 10);
-      const bombAmount = iteraction / 8 > 1 ? getRandomValueInclusive(1, 5) : 0;
+      const bombAmount = iteraction / 8 > 1 ? getRandomValueInclusive(1,  iteraction % 5 === 0 ? 2 : 5) : 0;
 
       fruits = shuffle([
         ...this.generateFruits(fruitAmount),

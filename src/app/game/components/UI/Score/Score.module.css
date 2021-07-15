@@ -1,7 +1,12 @@
+.wrapper {
+  position: absolute;
+  z-index: 2;
+}
+
 .score {
   grid-area: score;
   font-size: var(--text-size);
-  background: linear-gradient(rgba(255, 217, 20, 1) 0%, rgba(255, 154, 0, 1) 100%);
+  background: var(--yellow-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -15,6 +20,4 @@
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  color: rgba(85, 85, 85, 0.333)
-
 }

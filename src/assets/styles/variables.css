@@ -1,3 +1,10 @@
 :root {
     --text-size: 4rem;
+    --yellow-gradient: linear-gradient(rgba(255, 217, 20, 1) 0%, rgba(255, 154, 0, 1) 100%);
+    --red-gradient: linear-gradient(180deg, rgba(187,1,1,1) 0%, rgba(140,2,2,1) 100%);
+    --default-button: linear-gradient(rgba(142, 78, 1, 1) 0%, rgba(96, 42, 0, 1) 100%);
+    --primary-button: var(--red-gradient);
+    --default-border-color: rgba(96, 42, 0);
+    --primary-border-color: rgba(140,2,2);
+    --game-controls-zindex: 2;
 }

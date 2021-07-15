@@ -1,3 +1,4 @@
+import { getRandomValue } from './../../../common/services/rng';
 import { FruitName, GeneratableFruit } from './../../models/fruitData';
 import {
   Vector3,
@@ -27,7 +28,7 @@ import { Fruit } from '../../models/fruitData';
 import { Point } from '../../models/point';
 import { Subject } from 'rxjs';
 import { PBRMaterial } from 'babylonjs/Materials/PBR/pbrMaterial';
-import { StartMenuItem } from '../../models/startMenu';
+import { CutFruit } from '../../models/game';
 
 interface FruitOptions {
   readonly size: number;
@@ -57,12 +58,11 @@ export class GameScene {
   private startPositionY: number;
   private visibleFruits: AbstractMesh[] = [];
 
-  public cutFruits$ = new Subject<GeneratableFruit>();
+  public cutFruits$ = new Subject<CutFruit>();
   public missedFruit$ = new Subject<GeneratableFruit>();
 
   constructor(
     canvas: HTMLCanvasElement,
-    startMenu: StartMenuItem[],
     private cameraPosition: number
   ) {
     this.engine = new Engine(canvas);
@@ -86,6 +86,15 @@ export class GameScene {
       apple: this.importFruit('apple'),
       apple_cut1: this.importFruit('apple_cut1'),
       apple_cut2: this.importFruit('apple_cut2'),
+      lemon: this.importFruit('lemon'),
+      lemon_cut1: this.importFruit('lemon_cut2'),
+      lemon_cut2: this.importFruit('lemon_cut1'),
+      banana: this.importFruit('banana'),
+      banana_cut1: this.importFruit('banana_cut1'),
+      banana_cut2: this.importFruit('banana_cut2'),
+      pear: this.importFruit('pear'),
+      pear_cut1: this.importFruit('pear_cut1'),
+      pear_cut2: this.importFruit('pear_cut2'),
       bomb: this.importFruit('bomb'),
     };
 
@@ -169,8 +178,8 @@ export class GameScene {
     fruit.dispose();
   }
 
-  private createStartMenu(startMenu: StartMenuItem[]): void {
-    
+  private rotateMesh(mesh: AbstractMesh, axis: Vector3): void {
+    mesh.rotate(axis, getRandomValue(0.05, 0.07));
   }
 
   private async cutFruit(
@@ -191,13 +200,13 @@ export class GameScene {
 
     const slice1 = await this.createFruit(`${fruitName}_1`, `${type}_cut1`, {
       ...fruitSliceOptions,
-      impulseDirection: new Vector3(1, 1, 0),
+      impulseDirection: new Vector3(1, getRandomValue(0.5, 1), 0),
     });
     slice1.rotation = new Vector3(0, Math.PI, 0);
 
     const slice2 = await this.createFruit(`${fruitName}_2`, `${type}_cut1`, {
       ...fruitSliceOptions,
-      impulseDirection: new Vector3(-1, -1, 0),
+      impulseDirection: new Vector3(-1, getRandomValue(-0.5, -1), 0),
     });
     slice2.rotation = new Vector3(0, 0, 0);
 
@@ -208,8 +217,8 @@ export class GameScene {
     };
 
     this.scene.onBeforeRenderObservable.add(() => {
-      slice1.rotate(Axis.X, 0.05);
-      slice2.rotate(Axis.X, 0.05);
+      this.rotateMesh(slice1, Axis.X);
+      this.rotateMesh(slice2, Axis.X);
       removeFruitSlice(slice1);
       removeFruitSlice(slice2);
     });
@@ -225,12 +234,17 @@ export class GameScene {
       this.engine.runRenderLoop(() => {
         this.scene.render();
       });
-      this.onPause = true;
+      this.onPause = false;
     }
   }
 
   public clear(): void {
     this.visibleFruits.forEach((mesh) => this.removeFruit(mesh));
+  }
+
+  public clearAndReplay(): void {
+    this.clear();
+    this.replay();
   }
 
   public async pushFruit(
@@ -242,7 +256,7 @@ export class GameScene {
       y: number;
     }
   ): Promise<void> {
-    const fruitSize = type === 'bomb' ? 0.5 : 0.5 / 5;
+    const fruitSize = type === 'apple' ? 0.5 / 5 : 0.8; // change apple mesh
     const fruitName = `fruit${id}`;
 
     const fruit = await this.createFruit(fruitName, type, {
@@ -256,7 +270,7 @@ export class GameScene {
     });
 
     this.scene.onBeforeRenderObservable.add(() => {
-      fruit.rotate(Axis.Z, 0.05);
+      this.rotateMesh(fruit, Axis.Z)
       if (!fruit.isDisposed() && fruit.position.y < this.startPositionY) {
         this.removeFruit(fruit);
         this.missedFruit$.next(type);
@@ -267,14 +281,14 @@ export class GameScene {
     fruit.actionManager.registerAction(
       new ExecuteCodeAction(
         ActionManager.OnPointerOverTrigger,
-        async (event: ActionEvent) => {
+        async ({pointerX, pointerY, source}: ActionEvent) => {
           this.removeFruit(fruit);
-          this.cutFruits$.next(type);
+          this.cutFruits$.next({fruit: type, point: {x: pointerX, y: pointerY}});
 
           if (type !== 'bomb') {
             const slicePosition: Point = {
-              x: event.source._position.x,
-              y: event.source._position.y,
+              x: source._position.x,
+              y: source._position.y,
             };
             await this.cutFruit(fruitName, type, fruitSize, slicePosition);
           }

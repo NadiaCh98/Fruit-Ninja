@@ -1,22 +1,40 @@
 import styled from 'styled-components';
 
+type ClickHandler = (data: unknown) => void;
+type ButtonKind = 'default' | 'primary';
+
+interface StyledButtonProps {
+  readonly kind: ButtonKind;
+}
+type ButtonProps = Partial<StyledButtonProps> & {
+  readonly clickHandler: ClickHandler;
+};
+
 const StyledButton = styled.button`
-  width: 4rem;
+  min-width: 4rem;
   height: 4rem;
   display: flex;
+  font-size: 3rem;
+  color: #ffffff;
   justify-content: center;
   align-items: center;
-  border: 4px solid rgba(96, 42, 0, 1);
+  border: 4px solid ${(props: StyledButtonProps) => `var(--${props.kind}-border-color)`};
   border-radius: 7px;
-  background: linear-gradient(rgba(142, 78, 1, 1) 0%, rgba(96, 42, 0, 1) 100%);
+  background: ${(props: StyledButtonProps) => `var(--${props.kind}-button)`};
+
+  &:hover {
+    filter: brightness(85%);
+  }
 `;
 
-export type ClickHandler = (data: unknown) => void;
-
-interface ButtonProps {
-  readonly clickHandler: ClickHandler;
-}
-
-export const Button: React.FC<ButtonProps> = ({ clickHandler, children }) => {
-  return <StyledButton onClick={clickHandler}>{children}</StyledButton>;
+export const Button: React.FC<ButtonProps> = ({
+  kind = 'default',
+  clickHandler,
+  children,
+}) => {
+  return (
+    <StyledButton kind={kind} onClick={clickHandler}>
+      {children}
+    </StyledButton>
+  );
 };

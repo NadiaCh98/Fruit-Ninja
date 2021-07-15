@@ -1,0 +1,31 @@
+.wrapper {
+    padding: 2rem;
+    background: linear-gradient(180deg, rgba(255,175,0,1) 0%, rgba(152,97,0,1) 100%);
+    border: 3px solid #986100;
+    border-radius: 7px;
+    animation: wrapper 2s forwards;
+}
+
+@keyframes wrapper {
+    from {
+        transform: scale(0);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+.menu {
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.title {
+    font-size: var(--text-size);
+    color: white;
+    text-align: center;
+    margin: 0;
+    margin-bottom: 0.5em;
+}

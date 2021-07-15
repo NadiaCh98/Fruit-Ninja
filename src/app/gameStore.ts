@@ -1,46 +1,85 @@
 import { action, makeAutoObservable } from 'mobx';
-import { Game } from './common/constant';
+import { Game, GAME_CONFIG } from './common/constant';
 import { FruitSequence, GeneratableFruit } from './game/models/fruitData';
+import { BestScore, GameConfig, NullableNumber } from './game/models/game';
 import { createGeneratorFruitsByMode } from './game/services/creatorFruitsGenerator';
-import {
-  FruitsGenerator,
-} from './game/services/fruitsGenerator';
+import { FruitsGenerator } from './game/services/fruitsGenerator';
+
+const INIT_FRUITS: FruitSequence = {
+  fruits: [],
+  delayBetweenFruits: 0,
+};
 
 export class GameStore {
   private currentIteraction = 0;
   private generatorFruits?: FruitsGenerator;
 
-  public delayBetweenFruits = 1000;
-  public mode: Game = Game.Classic;
-  public nextFruits: FruitSequence = {
-    fruits: [],
-    delayBetweenFruits: this.delayBetweenFruits,
-  };
+  public gameMode: GameConfig | undefined;
+  public nextFruits: FruitSequence = {...INIT_FRUITS};
   public score = 0;
   public onPause = false;
-  public gameTime = 0;
+  public gameTime: NullableNumber = null;
+  public attemps: NullableNumber = null;
+  public gameId = 0;
 
   get isActiveGame(): boolean {
-    return Game.Classic ? this.attemps !== 0 : this.gameTime === 0;
+    return this.gameMode?.game === Game.Classic
+      ? this.attemps !== 0
+      : this.gameTime !== 0;
   }
 
-  constructor(private fruitPositionGeneratorInterval: number, public attemps: number) {
+  get bestScore(): BestScore {
+    const score = localStorage.getItem('bestScore');
+    const bestScore: BestScore = score
+      ? JSON.parse(score)
+      : {
+          Classic: 0,
+          Dzen: 0,
+        };
+    return bestScore;
+  }
+
+  get bestScoreByGameMode(): number {
+    return this.gameMode?.game ? this.bestScore[this.gameMode.game] : 0;
+  }
+
+  constructor(private fruitPositionGeneratorInterval: number) {
     makeAutoObservable(this, {
       generateNewFruits: action.bound,
       updateScore: action.bound,
       decrementAttemps: action.bound,
       pause: action.bound,
-      setGameMode: action.bound
+      updateGameTime: action.bound,
+      updateGameMode: action.bound,
+      replay: action.bound,
+      exitFromCurrentMode: action.bound
     });
     this.generateNewFruits(this.currentIteraction);
   }
 
   private updateBestScore(): void {
-    const score = localStorage.getItem('bestScore');
-    const bestScore = score ? +JSON.parse(score) : 0;
-    if (this.score < bestScore) {
-      localStorage.setItem('bestScore', JSON.stringify(this.score));
+    if (this.gameMode && this.score > this.bestScore[this.gameMode.game]) {
+      const updatedBestScore = {...this.bestScore, [this.gameMode.game]: this.score};
+      localStorage.setItem('bestScore', JSON.stringify(updatedBestScore));
     }
+  }
+
+  private initFruitsGenerator(mode: Game): void {
+    this.generatorFruits = createGeneratorFruitsByMode(
+      mode,
+      this.fruitPositionGeneratorInterval
+    );
+  }
+
+  private setGameMode(mode: Game): void {
+    this.gameId++;
+    this.currentIteraction = 0;
+    this.score = 0;
+    this.onPause = false;
+    this.nextFruits ={...INIT_FRUITS};
+    this.gameMode = GAME_CONFIG.find((config) => config.game === mode)!;
+    this.gameTime = this.gameMode.timer;
+    this.attemps = this.gameMode.attempts;
   }
 
   public generateNewFruits(iteration = this.currentIteraction): void {
@@ -54,16 +93,18 @@ export class GameStore {
     if (fruits.some((fruit) => fruit === 'bomb')) {
       this.attemps = 0;
     } else {
-      this.score += fruits.length;
+      const amount = fruits.length;
+      this.score += amount >= 3 ? amount * 2 : amount;
     }
+    this.updateBestScore();
   }
 
   public decrementAttemps(missedFruit: GeneratableFruit): void {
-    if (missedFruit !== 'bomb') {
-      this.attemps--;
+    if (this.gameMode?.game === Game.Dzen) {
+      return;
     }
-    if (this.attemps === 0) {
-      this.updateBestScore();
+    if (missedFruit !== 'bomb') {
+      this.attemps && this.attemps--;
     }
   }
 
@@ -71,27 +112,25 @@ export class GameStore {
     this.onPause = !this.onPause;
   }
 
-  public setGameMode(mode: Game): void {
-    this.mode = mode;
-    this.generatorFruits = createGeneratorFruitsByMode(mode, this.fruitPositionGeneratorInterval, this.delayBetweenFruits);
-    switch (mode) {
-      case Game.Dzen: {
-        this.gameTime = 60000;
-        break;
-      }
-      case Game.Classic: {
-        this.gameTime = 0;
-        break;
-      }
-    }
+  public updateGameMode(mode: Game): void {
+    this.setGameMode(mode);
+    this.initFruitsGenerator(mode);
   }
 
   public updateGameTime(): void {
-    if (this.mode === Game.Dzen) {
+    if (this.gameMode?.game === Game.Dzen && !!this.gameTime) {
       this.gameTime -= 1000;
-      if (this.gameTime === 0) {
-        this.updateBestScore();
-      }
     }
+  }
+
+  public replay(): void {
+    this.setGameMode(this.gameMode!.game);
+  }
+
+  public exitFromCurrentMode(): void {
+    this.gameId = 0;
+    this.onPause = false;
+    this.gameMode = undefined;
+    this.currentIteraction = 0;
   }
 }
