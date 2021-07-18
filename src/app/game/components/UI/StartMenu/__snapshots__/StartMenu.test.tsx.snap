@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Start Menu has a correct template 1`] = `
+<div>
+  <div
+    class="sc-gtsrHT dVXCLS"
+  />
+  <div
+    class="sc-dlnjwi glLXEG"
+  >
+    <div
+      class="sc-hKFxyN cStBoB"
+      data-testid="modes"
+    >
+      <button
+        class="sc-bdnxRM mZLZO"
+        kind="primary"
+      >
+        <p>
+          Classic
+        </p>
+      </button>
+      <button
+        class="sc-bdnxRM mZLZO"
+        kind="primary"
+      >
+        <p>
+          Dzen
+        </p>
+      </button>
+    </div>
+  </div>
+</div>
+`;

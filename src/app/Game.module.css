@@ -1,0 +1,28 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.scene {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.controls {
+  position: absolute;
+  z-index: 2;
+  padding: 2rem;
+}
+
+.score,
+.attemps {
+  font-size: 4rem;
+  color: #fff;
+}
+
+.attemps {
+  text-align: right;
+}

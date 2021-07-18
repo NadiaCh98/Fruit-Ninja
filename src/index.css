@@ -1,0 +1,24 @@
+@import-normalize;
+@import 'assets/styles/variables.css';
+
+@font-face {
+  font-family: FruitNinja;
+  src: url('assets/fonts/go3v2.ttf');
+}
+
+body {
+  margin: 0;
+}
+
+p {
+  margin: 0;
+  padding: 0;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  font-family: FruitNinja;
+  cursor: none;
+}

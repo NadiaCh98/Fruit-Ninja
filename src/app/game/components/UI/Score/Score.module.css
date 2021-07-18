@@ -1,0 +1,23 @@
+.wrapper {
+  position: absolute;
+  z-index: 2;
+}
+
+.score {
+  grid-area: score;
+  font-size: var(--text-size);
+  background: var(--yellow-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.best {
+  grid-area: best;
+  font-size: calc(var(--text-size) / 2.5);
+  background: linear-gradient(
+    rgba(255, 179, 0, 1) 0%,
+    rgba(255, 111, 0, 1) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

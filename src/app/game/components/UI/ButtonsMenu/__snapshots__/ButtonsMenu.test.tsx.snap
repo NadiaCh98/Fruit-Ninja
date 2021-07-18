@@ -1,0 +1,35 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Buttons Menu has a correct template 1`] = `
+<div>
+  <div
+    class="sc-gtsrHT dVXCLS"
+  />
+  <div
+    class="sc-dlnjwi glLXEG"
+  >
+    <section
+      class="wrapper"
+    >
+      <h1
+        class="title"
+      >
+        Test Template
+      </h1>
+      <div
+        class="menu"
+        data-testid="buttons"
+      >
+        <button
+          class="sc-bdnxRM dqJpqe"
+          kind="default"
+        >
+          <svg>
+            close.svg
+          </svg>
+        </button>
+      </div>
+    </section>
+  </div>
+</div>
+`;
