@@ -1,3 +1,4 @@
+import React from 'react';
 import styled from 'styled-components';
 import { Backdrop } from '../Backdrop/Backdrop';
 
@@ -13,9 +14,7 @@ export const Modal: React.FC = ({ children }) => {
   return (
     <>
       <Backdrop />
-      <Wrapper>
-          {children}
-      </Wrapper>
+      <Wrapper>{children}</Wrapper>
     </>
   );
 };

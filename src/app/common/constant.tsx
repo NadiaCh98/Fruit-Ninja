@@ -1,20 +1,21 @@
+import React from 'react';
 import { StartMenuItem } from '../game/models/startMenu';
 import { GameConfig } from '../game/models/game';
-import { ReactComponent as ExitIcon } from '../../assets/icons/close.svg';
-import { ReactComponent as PauseIcon } from '../../assets/icons/pause.svg';
-import { ReactComponent as ReplayIcon } from '../../assets/icons/replay.svg';
-import { ReactComponent as PlayIcon } from '../../assets/icons/play.svg';
 
 export const SCENE_SIZE = 9;
+export const FRUITS_POSITION_INTERVAL = SCENE_SIZE / 2;
 export const ATTEMPS = 3;
 export const MIN_CUT_COMBO = 3;
 export const DELAY_BETWEEN_FRUITS_GROUP = 3000;
+export const CUTTING_DELAY = 200;
+export const SOUND_PATH = '/sound';
+export const FRUITS_PATH = 'fruits/';
 
 export enum Fruits {
   apple,
   banana,
   lemon,
-  pear
+  pear,
 }
 
 export enum FruitSpeed {
@@ -23,34 +24,41 @@ export enum FruitSpeed {
   Fast = 3.4,
 }
 
-export enum Game {
+export enum GameMode {
   Classic = 'Classic',
   Dzen = 'Dzen',
 }
 
+export enum Sound {
+  Combo = 'combo',
+  Button = 'button',
+  Slice = 'slice',
+  GameOver = 'game-over',
+  GameStart = 'game-start',
+  Gank = 'gank',
+}
+
 export const START_MENU: StartMenuItem[] = [
   {
-    mode: Game.Classic,
-    fruit: 'apple',
+    mode: GameMode.Classic,
   },
   {
-    mode: Game.Dzen,
-    fruit: 'apple',
+    mode: GameMode.Dzen,
   },
 ];
 
-export const GAME_CONFIG: GameConfig[] = [
-  {
-    game: Game.Classic,
+export const GAME_CONFIG: Record<GameMode, GameConfig> = {
+  Classic: {
+    game: GameMode.Classic,
     timer: null,
     attempts: 3,
   },
-  {
-    game: Game.Dzen,
+  Dzen: {
+    game: GameMode.Dzen,
     timer: 90000,
-    attempts: 0,
+    attempts: null,
   },
-];
+};
 
 export enum PermissibleButton {
   Exit = 'Exit',
@@ -58,13 +66,6 @@ export enum PermissibleButton {
   Play = 'Play',
   Replay = 'Replay',
 }
-
-export const BUTTONS: Record<PermissibleButton, JSX.Element> = {
-  Exit: <ExitIcon />,
-  Pause: <PauseIcon />,
-  Play: <PlayIcon />,
-  Replay: <ReplayIcon />,
-};
 
 export const RIGHT_POSITION: React.CSSProperties = {
   top: 0,

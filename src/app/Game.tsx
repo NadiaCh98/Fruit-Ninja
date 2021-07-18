@@ -1,4 +1,4 @@
-import {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -8,10 +8,13 @@ import {
 import { GameScene } from './game/components/GameScene/GameScene';
 import styles from './Game.module.css';
 import {
+  CUTTING_DELAY,
   DELAY_BETWEEN_FRUITS_GROUP,
+  GameMode,
   MIN_CUT_COMBO,
   PermissibleButton,
   SCENE_SIZE,
+  Sound,
   START_MENU,
 } from './common/constant';
 import { observer } from 'mobx-react-lite';
@@ -20,6 +23,7 @@ import {
   BehaviorSubject,
   combineLatest,
   from,
+  fromEvent,
   interval,
   of,
   Subject,
@@ -41,7 +45,6 @@ import { FruitSequence } from './game/models/fruitData';
 import { Blade } from './game/components/UI/Blade/Blade';
 import { GameControls } from './game/components/GameControls/GameControls';
 import { Button } from './common/components/Button/Button';
-import { ReactComponent as Pause } from '../assets/icons/pause.svg';
 import { StartMenu } from './game/components/UI/StartMenu/StartMenu';
 import { Score } from './game/components/UI/Score/Score';
 import { Timer } from './game/components/UI/Timer/Timer';
@@ -50,6 +53,12 @@ import { Attempts } from './game/components/UI/Attempts/Attempts';
 import { ButtonsMenu } from './game/components/UI/ButtonsMenu/ButtonsMenu';
 import { ComboBonus } from './game/components/UI/Combo/Combo';
 import { generateId } from './game/services/generateId';
+import { createAudioEffect } from './game/services/creatorAudioEffect';
+import { Pause } from './game/components/UI/Icons/Icons';
+
+const sliceSound = createAudioEffect(Sound.Slice);
+const comboSound = createAudioEffect(Sound.Combo);
+const gameOverSound = createAudioEffect(Sound.GameOver);
 
 export const Game = observer(() => {
   const gameCanvasRef = useRef<Nullable<HTMLCanvasElement>>(null);
@@ -88,35 +97,47 @@ export const Game = observer(() => {
       gameScene.current = new GameScene(gameCanvasRef.current, SCENE_SIZE);
 
       const cutFruits$ = gameScene.current.cutFruits$;
-      const missedFruit$ = gameScene.current.missedFruit$;
 
       const scoreSubscription = cutFruits$
         .pipe(
-          bufferTime(150),
+          bufferTime(CUTTING_DELAY),
           filter((value) => value.length > 0),
           tap((fruits) => {
             const amount = fruits.length;
+            let audio = sliceSound;
             if (amount >= MIN_CUT_COMBO) {
               const lastItem = fruits[amount - 1];
+              audio = comboSound;
               setCombo((combo) => [
                 ...combo,
                 { id: generateId(), amount, point: lastItem.point },
               ]);
+            }
+            if (
+              audio.currentTime === 0 ||
+              audio.currentTime >= audio.duration / 2
+            ) {
+              audio.currentTime = 0;
+              audio.play();
             }
             updateScore(fruits.map((item) => item.fruit));
           })
         )
         .subscribe();
 
-      const missedFruitSubscription = missedFruit$
-        .pipe(tap((fruit) => decrementAttemps(fruit)))
+      const resize = fromEvent(window, 'resize')
+        .pipe(
+          tap(() => {
+            gameScene.current?.resize();
+          })
+        )
         .subscribe();
 
-      scoreSubscription.add(missedFruitSubscription);
+      scoreSubscription.add(resize);
 
       return () => scoreSubscription.unsubscribe();
     }
-  }, [updateScore, decrementAttemps]);
+  }, [updateScore]);
 
   useEffect(() => {
     fruits$.current.next(nextFruits);
@@ -142,6 +163,7 @@ export const Game = observer(() => {
     const gameOver$ = isActiveGame$.current.pipe(
       tap(() => {
         setGameOver(true);
+        gameOverSound.play();
         gameScene.current?.clear();
       })
     );
@@ -152,6 +174,22 @@ export const Game = observer(() => {
         onPause ? gameScene.current?.pause() : gameScene.current?.replay();
       })
     );
+
+    const missedFruitSubscription = gameScene.current?.missedFruit$
+      .pipe(
+        tap((fruit) => {
+          decrementAttemps(fruit);
+          if (
+            !!gameMode &&
+            gameMode.game === GameMode.Classic &&
+            fruit !== 'bomb'
+          ) {
+            const gankSound = createAudioEffect(Sound.Gank);
+            gankSound.play();
+          }
+        })
+      )
+      .subscribe();
 
     const fruitsUI = ({ fruits, delayBetweenFruits }: FruitSequence) => {
       return from(fruits).pipe(
@@ -174,12 +212,12 @@ export const Game = observer(() => {
 
     const gameTimer$ = gameMode?.timer
       ? interval(1000).pipe(
-          withLatestFrom(pause$),
-          filter(([_, onPause]) => !onPause),
-          tap(() => {
-            updateGameTime();
-          })
-        )
+        withLatestFrom(pause$),
+        filter(([_, onPause]) => !onPause),
+        tap(() => {
+          updateGameTime();
+        })
+      )
       : of();
 
     const fruitsGenerator$ = combineLatest([fruits$.current, pause$]).pipe(
@@ -187,42 +225,44 @@ export const Game = observer(() => {
       map(([fruits, _]) => fruits),
       concatMap((fruits) =>
         fruitsUI(fruits).pipe(
-          delayWhen((value) => interval(value > 0 ? DELAY_BETWEEN_FRUITS_GROUP : 0))
+          delayWhen((value) =>
+            interval(value > 0 ? DELAY_BETWEEN_FRUITS_GROUP : 0)
+          )
         )
       ),
       tap(() => generateNewFruits())
     );
 
-    const game$ = !!gameTimer$
+    const game$ = gameTimer$
       ? combineLatest([gameTimer$, fruitsGenerator$]).pipe(
-          map(([_, generator]) => generator)
-        )
+        map(([_, generator]) => generator)
+      )
       : fruitsGenerator$;
 
     if (gameId) {
       const gameSubscription = game$.pipe(takeUntil(gameOver$)).subscribe();
-
-      return () => gameSubscription.unsubscribe();
+      missedFruitSubscription?.add(gameSubscription);
     }
-  }, [generateNewFruits, updateGameTime, gameMode, gameId]);
+    return () => missedFruitSubscription?.unsubscribe();
+  }, [generateNewFruits, updateGameTime, decrementAttemps, gameMode, gameId]);
 
   const menuClick = useCallback(
     (button: PermissibleButton) => {
       switch (button) {
-        case PermissibleButton.Play: {
-          pause();
-          break;
-        }
-        case PermissibleButton.Replay: {
-          replay();
-          gameScene.current?.clearAndReplay();
-          break;
-        }
-        case PermissibleButton.Exit: {
-          exitFromCurrentMode();
-          gameScene.current?.clearAndReplay();
-          break;
-        }
+      case PermissibleButton.Play: {
+        pause();
+        break;
+      }
+      case PermissibleButton.Replay: {
+        replay();
+        gameScene.current?.clearAndReplay();
+        break;
+      }
+      case PermissibleButton.Exit: {
+        exitFromCurrentMode();
+        gameScene.current?.clearAndReplay();
+        break;
+      }
       }
     },
     [pause, replay, exitFromCurrentMode]
@@ -237,49 +277,70 @@ export const Game = observer(() => {
   );
 
   return (
-    <div className={styles.wrapper}>
-      <Blade />
-      <Score score={score} best={bestScoreByGameMode} />
-      {!onPause && (
-        <GameControls style={{ bottom: 0, left: 0 }}>
-          <Button clickHandler={pause}>
-            <Pause />
-          </Button>
-        </GameControls>
-      )}
-      {!!combo &&
-        combo.map((item) => (
-          <ComboBonus key={item.id} comboInfo={item} unmount={removeComboItem} />
-        ))}
-      {isGameOver && (
-        <ButtonsMenu
-          buttons={[PermissibleButton.Exit, PermissibleButton.Replay]}
-          title="Game Over"
-          buttonClick={menuClick}
-        ></ButtonsMenu>
-      )}
-      {!!gameTime && gameTime >= 0 && <Timer time={gameTime} />}
-      {!!gameMode?.attempts && attemps !== null && (
-        <Attempts
-          totalAttempts={gameMode.attempts}
-          remainingAttempts={attemps}
-        />
-      )}
-      {!gameMode && (
-        <StartMenu items={START_MENU} selectMode={updateGameMode} />
-      )}
-      {onPause && (
-        <ButtonsMenu
-          buttons={[
-            PermissibleButton.Exit,
-            PermissibleButton.Replay,
-            PermissibleButton.Play,
-          ]}
-          title="Paused"
-          buttonClick={menuClick}
-        />
-      )}
-      <canvas className={styles.scene} ref={gameCanvasRef} />
+    <div data-testid="game" className={styles.wrapper}>
+      <div data-testid="controls">
+        <Blade data-testid="blade" />
+        <Score data-testid="score" score={score} best={bestScoreByGameMode} />
+        {!onPause && (
+          <GameControls style={{ bottom: 0, left: 0 }}>
+            <Button clickHandler={pause} data-testid="pause">
+              <Pause />
+            </Button>
+          </GameControls>
+        )}
+        {!!combo &&
+          combo.map((item, i) => (
+            <ComboBonus
+              data-testid={`combo${i}`}
+              key={item.id}
+              comboInfo={item}
+              unmount={removeComboItem}
+            />
+          ))}
+        {isGameOver && (
+          <ButtonsMenu
+            data-testid="gameOverButtonsMenu"
+            buttons={[PermissibleButton.Exit, PermissibleButton.Replay]}
+            title="Game Over"
+            buttonClick={menuClick}
+          ></ButtonsMenu>
+        )}
+        {!!gameTime && gameTime >= 0 && (
+          <Timer data-testid="timer" time={gameTime} />
+        )}
+        {!!gameMode?.attempts && attemps !== null && (
+          <Attempts
+            data-testid="attempts"
+            totalAttempts={gameMode.attempts}
+            remainingAttempts={attemps}
+          />
+        )}
+        {!gameMode && (
+          <StartMenu
+            data-testid="startMenu"
+            items={START_MENU}
+            selectMode={updateGameMode}
+          />
+        )}
+        {onPause && (
+          <ButtonsMenu
+            data-testid="pausedButtonsMenu"
+            buttons={[
+              PermissibleButton.Exit,
+              PermissibleButton.Replay,
+              PermissibleButton.Play,
+            ]}
+            title="Paused"
+            buttonClick={menuClick}
+          />
+        )}
+      </div>
+
+      <canvas
+        data-testid="scene"
+        className={styles.scene}
+        ref={gameCanvasRef}
+      />
     </div>
   );
 });

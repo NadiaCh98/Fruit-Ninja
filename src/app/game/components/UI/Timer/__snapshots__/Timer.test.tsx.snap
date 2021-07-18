@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Timer has a correct template #1 1`] = `
+<div>
+  <div
+    class="sc-bdnxRM lhbDim"
+    style="top: 0px; right: 0px;"
+  >
+    <p
+      class="sc-gtsrHT ljxMPJ"
+    >
+      1:30
+    </p>
+  </div>
+</div>
+`;
+
+exports[`Timer has a correct template #2 1`] = `
+<div>
+  <div
+    class="sc-bdnxRM lhbDim"
+    style="top: 0px; right: 0px;"
+  >
+    <p
+      class="sc-gtsrHT kYMBSG"
+    >
+      0:07
+    </p>
+  </div>
+</div>
+`;

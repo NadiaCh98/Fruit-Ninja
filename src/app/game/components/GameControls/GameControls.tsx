@@ -1,4 +1,4 @@
-import React, { HTMLAttributes } from 'react';
+import React, { HTMLAttributes, memo } from 'react';
 import styled from 'styled-components';
 
 const StyledGameControls = styled.div`
@@ -7,9 +7,10 @@ const StyledGameControls = styled.div`
   padding: 2rem;
 `;
 
-export const GameControls: React.FC<HTMLAttributes<{}>> = ({
-  children,
-  style,
-}) => {
-  return <StyledGameControls style={style}>{children}</StyledGameControls>;
-};
+export const GameControls: React.FC<HTMLAttributes<unknown>> = memo(
+  ({ children, style }) => {
+    return <StyledGameControls style={style}>{children}</StyledGameControls>;
+  }
+);
+
+GameControls.displayName = 'GameControl';

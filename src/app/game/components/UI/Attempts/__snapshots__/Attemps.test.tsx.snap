@@ -1,0 +1,69 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Attempts has a correct template #1 1`] = `
+<div
+  class="sc-bdnxRM lhbDim"
+  style="top: 0px; right: 0px;"
+>
+  <svg>
+    canceledAttempt.svg
+  </svg>
+  <svg>
+    canceledAttempt.svg
+  </svg>
+  <svg>
+    canceledAttempt.svg
+  </svg>
+</div>
+`;
+
+exports[`Attempts has a correct template #2 1`] = `
+<div
+  class="sc-bdnxRM lhbDim"
+  style="top: 0px; right: 0px;"
+>
+  <svg>
+    canceledAttempt.svg
+  </svg>
+  <svg>
+    canceledAttempt.svg
+  </svg>
+  <svg>
+    activeAttempt.svg
+  </svg>
+</div>
+`;
+
+exports[`Attempts has a correct template #3 1`] = `
+<div
+  class="sc-bdnxRM lhbDim"
+  style="top: 0px; right: 0px;"
+>
+  <svg>
+    canceledAttempt.svg
+  </svg>
+  <svg>
+    activeAttempt.svg
+  </svg>
+  <svg>
+    activeAttempt.svg
+  </svg>
+</div>
+`;
+
+exports[`Attempts has a correct template #3 2`] = `
+<div
+  class="sc-bdnxRM lhbDim"
+  style="top: 0px; right: 0px;"
+>
+  <svg>
+    activeAttempt.svg
+  </svg>
+  <svg>
+    activeAttempt.svg
+  </svg>
+  <svg>
+    activeAttempt.svg
+  </svg>
+</div>
+`;

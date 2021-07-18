@@ -1,8 +1,8 @@
 export interface Point {
-    readonly x: number;
-    readonly y: number;
+  readonly x: number;
+  readonly y: number;
 }
 
-export interface Delta extends Point{
-    readonly delta: Point;
+export interface Delta extends Point {
+  readonly delta: Point;
 }

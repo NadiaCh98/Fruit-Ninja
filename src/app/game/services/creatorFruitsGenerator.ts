@@ -1,16 +1,16 @@
-import { Game } from '../../common/constant';
+import { GameMode } from '../../common/constant';
 import { FruitsGenerator } from './fruitsGenerator';
-import { ClassicFruitsGenerator } from './implementations/classicFruitsGenerator';
-import { DzenFruitsGenerator } from './implementations/dzenFruitsGenerator';
+import { ClassicFruitsGenerator } from './implementations/classic/classicFruitsGenerator';
+import { DzenFruitsGenerator } from './implementations/dzen/dzenFruitsGenerator';
 
 export const createGeneratorFruitsByMode = (
-  mode: Game,
+  mode: GameMode,
   fruitPositionInterval: number
 ): FruitsGenerator => {
   switch (mode) {
-    case Game.Classic:
-      return new ClassicFruitsGenerator(fruitPositionInterval);
-    case Game.Dzen:
-      return new DzenFruitsGenerator(fruitPositionInterval);
+  case GameMode.Classic:
+    return new ClassicFruitsGenerator(fruitPositionInterval);
+  case GameMode.Dzen:
+    return new DzenFruitsGenerator(fruitPositionInterval);
   }
 };

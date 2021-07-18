@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Combo has a correct template 1`] = `
+<div>
+  <div
+    class="sc-bdnxRM lhbDim"
+    style="left: 100px; top: 100px;"
+  >
+    <div
+      class="wrapper"
+    >
+      <p>
+        4
+         Fruits Combo
+      </p>
+      <h2>
+        x 2
+      </h2>
+    </div>
+  </div>
+</div>
+`;

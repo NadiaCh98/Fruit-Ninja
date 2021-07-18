@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Game Controls has a correct template #1 1`] = `
+<div
+  class="sc-bdnxRM lhbDim"
+/>
+`;
+
+exports[`Game Controls has a correct template #2 1`] = `
+<div
+  class="sc-bdnxRM lhbDim"
+>
+  Hello
+</div>
+`;

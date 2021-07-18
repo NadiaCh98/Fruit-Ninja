@@ -1,8 +1,8 @@
 import React from 'react';
 
-export function createContext<StoresMap extends { [K: string]: object }>(
-  stores: StoresMap
-) {
+export function createContext<
+  StoresMap extends { [K: string]: Record<string, any> }
+>(stores: StoresMap) {
   const StoreContext = React.createContext<StoresMap>(undefined!);
 
   const StoreProvider: React.FC = ({ children }) => (

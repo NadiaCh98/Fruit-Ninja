@@ -1,4 +1,6 @@
-import { getRandomValue } from './../../../common/services/rng';
+import {
+  getRandomValue,
+} from './../../../common/services/rng';
 import { FruitName, GeneratableFruit } from './../../models/fruitData';
 import {
   Vector3,
@@ -20,8 +22,7 @@ import {
   ActionEvent,
   DirectionalLight,
   AbstractMesh,
-  SceneLoader,
-  Axis,
+  SceneLoader
 } from 'babylonjs';
 import { Id } from '../../models/baseEntity';
 import { Fruit } from '../../models/fruitData';
@@ -29,6 +30,7 @@ import { Point } from '../../models/point';
 import { Subject } from 'rxjs';
 import { PBRMaterial } from 'babylonjs/Materials/PBR/pbrMaterial';
 import { CutFruit } from '../../models/game';
+import { FRUITS_PATH } from '../../../common/constant';
 
 interface FruitOptions {
   readonly size: number;
@@ -61,10 +63,7 @@ export class GameScene {
   public cutFruits$ = new Subject<CutFruit>();
   public missedFruit$ = new Subject<GeneratableFruit>();
 
-  constructor(
-    canvas: HTMLCanvasElement,
-    private cameraPosition: number
-  ) {
+  constructor(canvas: HTMLCanvasElement, private cameraPosition: number) {
     this.engine = new Engine(canvas);
     this.scene = this.createScene();
 
@@ -93,8 +92,8 @@ export class GameScene {
       banana_cut1: this.importFruit('banana_cut1'),
       banana_cut2: this.importFruit('banana_cut2'),
       pear: this.importFruit('pear'),
-      pear_cut1: this.importFruit('pear_cut1'),
-      pear_cut2: this.importFruit('pear_cut2'),
+      pear_cut1: this.importFruit('pear_cut2'),
+      pear_cut2: this.importFruit('pear_cut1'),
       bomb: this.importFruit('bomb'),
     };
 
@@ -182,6 +181,11 @@ export class GameScene {
     mesh.rotate(axis, getRandomValue(0.05, 0.07));
   }
 
+  private generateRotationDirection(): Vector3 {
+    const position = () => getRandomValue(-10, 10);
+    return new Vector3(position(), position(), position());
+  }
+
   private async cutFruit(
     fruitName: string,
     type: FruitName,
@@ -202,13 +206,13 @@ export class GameScene {
       ...fruitSliceOptions,
       impulseDirection: new Vector3(1, getRandomValue(0.5, 1), 0),
     });
-    slice1.rotation = new Vector3(0, Math.PI, 0);
+    const slice1Direction = this.generateRotationDirection();
 
     const slice2 = await this.createFruit(`${fruitName}_2`, `${type}_cut1`, {
       ...fruitSliceOptions,
       impulseDirection: new Vector3(-1, getRandomValue(-0.5, -1), 0),
     });
-    slice2.rotation = new Vector3(0, 0, 0);
+    const slice2Direction = this.generateRotationDirection();
 
     const removeFruitSlice = (slice: AbstractMesh) => {
       if (!slice.isDisposed() && slice.position.y < this.startPositionY) {
@@ -217,11 +221,15 @@ export class GameScene {
     };
 
     this.scene.onBeforeRenderObservable.add(() => {
-      this.rotateMesh(slice1, Axis.X);
-      this.rotateMesh(slice2, Axis.X);
+      this.rotateMesh(slice1, slice1Direction);
+      this.rotateMesh(slice2, slice2Direction);
       removeFruitSlice(slice1);
       removeFruitSlice(slice2);
     });
+  }
+
+  public resize(): void {
+    this.engine.resize();
   }
 
   public pause(): void {
@@ -269,8 +277,10 @@ export class GameScene {
       magnitutide: MAGNITUDE,
     });
 
+    const fruitDirection = this.generateRotationDirection();
+
     this.scene.onBeforeRenderObservable.add(() => {
-      this.rotateMesh(fruit, Axis.Z)
+      this.rotateMesh(fruit, fruitDirection);
       if (!fruit.isDisposed() && fruit.position.y < this.startPositionY) {
         this.removeFruit(fruit);
         this.missedFruit$.next(type);
@@ -281,9 +291,12 @@ export class GameScene {
     fruit.actionManager.registerAction(
       new ExecuteCodeAction(
         ActionManager.OnPointerOverTrigger,
-        async ({pointerX, pointerY, source}: ActionEvent) => {
+        async ({ pointerX, pointerY, source }: ActionEvent) => {
           this.removeFruit(fruit);
-          this.cutFruits$.next({fruit: type, point: {x: pointerX, y: pointerY}});
+          this.cutFruits$.next({
+            fruit: type,
+            point: { x: pointerX, y: pointerY },
+          });
 
           if (type !== 'bomb') {
             const slicePosition: Point = {
@@ -300,7 +313,7 @@ export class GameScene {
   private async importFruit(type: Fruit) {
     const { meshes } = await SceneLoader.ImportMeshAsync(
       null,
-      `fruits/`,
+      `${FRUITS_PATH}`,
       `${type}.babylon`,
       this.scene
     );

@@ -1,15 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+import 'babylonjs-loaders';
 import App from './App';
 import { StoreProvider } from './app/common/store';
-import 'babylonjs-loaders';
+import { AppErrorBoundary } from './AppErrorBoundary';
 
 ReactDOM.render(
   <React.StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
+    <AppErrorBoundary>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </AppErrorBoundary>
   </React.StrictMode>,
   document.getElementById('root')
 );

@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Score has a correct template 1`] = `
+<div>
+  <div
+    class="sc-bdnxRM lhbDim"
+  >
+    <p
+      class="score"
+    >
+      50
+    </p>
+    <p
+      class="best"
+    >
+      Best: 
+      60
+    </p>
+  </div>
+</div>
+`;

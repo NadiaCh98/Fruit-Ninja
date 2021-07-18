@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { timer } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Combo } from '../../../models/game';
@@ -10,6 +10,8 @@ interface ComboProps {
   readonly unmount: (item: Combo) => void;
 }
 
+export const COMBO_TIME = 3000;
+
 export const ComboBonus: React.FC<ComboProps> = ({ comboInfo, unmount }) => {
   const {
     amount,
@@ -20,7 +22,7 @@ export const ComboBonus: React.FC<ComboProps> = ({ comboInfo, unmount }) => {
   useEffect(() => {
     setHide(false);
 
-    const timeout = timer(3000)
+    const timeout = timer(COMBO_TIME)
       .pipe(
         tap(() => {
           setHide(true);
@@ -36,7 +38,7 @@ export const ComboBonus: React.FC<ComboProps> = ({ comboInfo, unmount }) => {
     <GameControls style={{ left: pointX, top: pointY }}>
       <div className={styles.wrapper}>
         <p>{amount} Fruits Combo</p>
-        <h2>x 2</h2> 
+        <h2>x 2</h2>
       </div>
     </GameControls>
   ) : null;

@@ -1,4 +1,7 @@
+import React, { memo, useCallback } from 'react';
 import styled from 'styled-components';
+import { createAudioEffect } from '../../../game/services/creatorAudioEffect';
+import { Sound } from '../../constant';
 
 type ClickHandler = (data: unknown) => void;
 type ButtonKind = 'default' | 'primary';
@@ -18,7 +21,8 @@ const StyledButton = styled.button`
   color: #ffffff;
   justify-content: center;
   align-items: center;
-  border: 4px solid ${(props: StyledButtonProps) => `var(--${props.kind}-border-color)`};
+  border: 4px solid
+    ${(props: StyledButtonProps) => `var(--${props.kind}-border-color)`};
   border-radius: 7px;
   background: ${(props: StyledButtonProps) => `var(--${props.kind}-button)`};
 
@@ -27,14 +31,23 @@ const StyledButton = styled.button`
   }
 `;
 
-export const Button: React.FC<ButtonProps> = ({
-  kind = 'default',
-  clickHandler,
-  children,
-}) => {
-  return (
-    <StyledButton kind={kind} onClick={clickHandler}>
-      {children}
-    </StyledButton>
-  );
-};
+const buttonClickSound = createAudioEffect(Sound.Button);
+
+export const Button: React.FC<ButtonProps> = memo(
+  ({ kind = 'default', clickHandler, children }) => {
+    const click = useCallback(
+      (data: unknown) => {
+        buttonClickSound.play();
+        clickHandler(data);
+      },
+      [clickHandler]
+    );
+    return (
+      <StyledButton kind={kind} onClick={click}>
+        {children}
+      </StyledButton>
+    );
+  }
+);
+
+Button.displayName = 'Button';

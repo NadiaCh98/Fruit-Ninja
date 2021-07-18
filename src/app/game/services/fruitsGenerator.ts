@@ -18,9 +18,7 @@ export interface SpecificGeneratorMode {
 }
 
 export abstract class FruitsGenerator implements SpecificGeneratorMode {
-  constructor(
-    protected fruitPositionInterval: number
-  ) {}
+  constructor(protected fruitPositionInterval: number) {}
 
   public abstract generateFruitsSequence: GenerateFruits;
 
