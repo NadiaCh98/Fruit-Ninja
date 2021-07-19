@@ -198,36 +198,32 @@ describe('Gane Store', () => {
 
   describe('Best Score', () => {
     it('asserts that best score has 0 values initially', () => {
-      const initBestScore: BestScore = {
-        Classic: 0,
-        Dzen: 0,
-      };
-      expect(store.bestScore).toEqual(initBestScore);
+      expect(store.scoreInfo.bestScore).toBe(0);
     });
 
     it('asserts that best score is actual score of current game mode if invoke updatScore() and previous value is the same as init', () => {
       store.updateGameMode(GameMode.Classic);
       expect(store.score).toBe(0);
-      expect(store.bestScoreByGameMode).toBe(0);
+      expect(store.scoreInfo.bestScore).toBe(0);
 
       const fruits: GeneratableFruit[] = ['apple', 'banana'];
       store.updateScore(fruits);
 
       expect(store.score).toBe(fruits.length);
-      expect(store.bestScoreByGameMode).toBe(store.score);
+      expect(store.scoreInfo.bestScore).toBe(store.score);
     });
 
     it('asserts that best score isn\'t changed of current game mode if invoke updatScore() and score is less than best score', () => {
       store.updateGameMode(GameMode.Classic);
       expect(store.score).toBe(0);
-      expect(store.bestScoreByGameMode).not.toBe(0);
+      expect(store.scoreInfo.bestScore).not.toBe(0);
 
       let fruits: GeneratableFruit[] = ['apple', 'banana', 'pear', 'lemon'];
       const scoreGame1 = fruits.length * 2;
       store.updateScore(fruits);
 
       expect(store.score).toBe(scoreGame1);
-      expect(store.bestScoreByGameMode).toBe(store.score);
+      expect(store.scoreInfo.bestScore).toBe(store.score);
 
       store.updateGameMode(GameMode.Classic);
 
@@ -236,7 +232,7 @@ describe('Gane Store', () => {
       store.updateScore(fruits);
 
       expect(store.score).toBe(scoreGame2);
-      expect(store.bestScoreByGameMode).toBe(scoreGame1);
+      expect(store.scoreInfo.bestScore).toBe(scoreGame1);
     });
   });
 });

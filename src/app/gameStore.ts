@@ -1,7 +1,7 @@
 import { action, makeAutoObservable } from 'mobx';
 import { GameMode, GAME_CONFIG, MIN_CUT_COMBO } from './common/constant';
 import { FruitSequence, GeneratableFruit } from './game/models/fruitData';
-import { BestScore, GameConfig, NullableNumber } from './game/models/game';
+import { BestScore, GameConfig, NullableNumber, ScoreInfo } from './game/models/game';
 import { createGeneratorFruitsByMode } from './game/services/creatorFruitsGenerator';
 import { FruitsGenerator } from './game/services/fruitsGenerator';
 
@@ -13,6 +13,7 @@ export const INIT_FRUITS: FruitSequence = {
 export class GameStore {
   private currentIteraction = 0;
   private generatorFruits?: FruitsGenerator;
+  private isBestScoreChanged = false;
 
   public gameMode: GameConfig | undefined;
   public nextFruits: FruitSequence = { ...INIT_FRUITS };
@@ -28,7 +29,7 @@ export class GameStore {
       : this.gameTime !== 0;
   }
 
-  get bestScore(): BestScore {
+  private getBestScore(): BestScore {
     const score = localStorage.getItem('bestScore');
     const bestScore: BestScore = score
       ? JSON.parse(score)
@@ -39,9 +40,17 @@ export class GameStore {
     return bestScore;
   }
 
-  get bestScoreByGameMode(): number {
-    return this.gameMode?.game ? this.bestScore[this.gameMode.game] : 0;
+  private getBestScoreByGameMode(): number {
+    const bestScore = this.getBestScore();
+    return this.gameMode?.game  ? bestScore[this.gameMode.game] : 0;
   }
+
+  get scoreInfo(): ScoreInfo {
+    return {
+      score: this.score,
+      bestScore: this.getBestScoreByGameMode()
+    };
+  } 
 
   constructor(private fruitPositionGeneratorInterval: number) {
     makeAutoObservable(this, {
@@ -57,9 +66,9 @@ export class GameStore {
   }
 
   private updateBestScore(): void {
-    if (this.gameMode && this.score > this.bestScore[this.gameMode.game]) {
+    if (this.gameMode && this.score > this.getBestScoreByGameMode()) {
       const updatedBestScore = {
-        ...this.bestScore,
+        ...this.getBestScore(),
         [this.gameMode.game]: this.score,
       };
       localStorage.setItem('bestScore', JSON.stringify(updatedBestScore));

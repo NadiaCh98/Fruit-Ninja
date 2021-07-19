@@ -71,13 +71,12 @@ export const Game = observer(() => {
 
   const {
     nextFruits,
-    score,
+    scoreInfo,
     isActiveGame,
     onPause,
     gameTime,
     gameMode,
     attemps,
-    bestScoreByGameMode,
     gameId,
     replay,
     pause,
@@ -280,7 +279,7 @@ export const Game = observer(() => {
     <div data-testid="game" className={styles.wrapper}>
       <div data-testid="controls">
         <Blade data-testid="blade" />
-        <Score data-testid="score" score={score} best={bestScoreByGameMode} />
+        <Score data-testid="score" score={scoreInfo.score} best={scoreInfo.bestScore} />
         {!onPause && (
           <GameControls style={{ bottom: 0, left: 0 }}>
             <Button clickHandler={pause} data-testid="pause">

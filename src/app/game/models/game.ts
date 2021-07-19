@@ -23,3 +23,8 @@ export interface Combo {
 }
 
 export type BestScore = Record<GameMode, number>;
+
+export interface ScoreInfo {
+  readonly score: number;
+  readonly bestScore: number;
+}
